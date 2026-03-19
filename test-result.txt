@@ -1,0 +1,163 @@
+﻿
+> taskflow@1.0.0 test
+> cross-env NODE_ENV=test jest --coverage --detectOpenHandles --forceExit
+
+node.exe : PASS 
+tests/auth.test.js 
+(11.546 s)
+At C:\Program Files\n
+odejs\npm.ps1:29 
+char:3
++   & $NODE_EXE 
+$NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (PASS te   
+ sts/auth.test.js    
+ (11.546 s):Stri    
+ng) [], RemoteEx    
+ception
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  Auth Endpoints
+    POST 
+/auth/register
+      ΓêÜ should 
+register a new user 
+successfully (877 ms)
+      ΓêÜ should 
+fail with duplicate 
+email (514 ms)
+      ΓêÜ should 
+fail with invalid 
+email (39 ms)
+      ΓêÜ should 
+fail with short 
+password (40 ms)
+    POST /auth/login
+      ΓêÜ should 
+login successfully 
+and return JWT token 
+(875 ms)
+      ΓêÜ should 
+fail with wrong 
+password (963 ms)
+      ΓêÜ should 
+fail with 
+non-existent email 
+(762 ms)
+
+  console.log
+    Task assigned job added: mock-job-id
+
+      at QueueService.log [as addTaskAssignedJob] (src/services/queueService.js:15:17)
+
+PASS 
+tests/task.test.js 
+(13.79 s)
+  Task Endpoints
+    POST /tasks
+      ΓêÜ should 
+require 
+authentication (847 
+ms)
+      ΓêÜ should 
+create a task 
+successfully (667 ms)
+      ΓêÜ should 
+fail without title 
+(580 ms)
+      ΓêÜ should 
+trigger notification 
+queue when task is 
+assigned (1133 ms)
+    GET /tasks
+      ΓêÜ should 
+return list of tasks 
+(569 ms)
+      ΓêÜ should 
+support pagination 
+(669 ms)
+    GET /tasks/:id
+      ΓêÜ should 
+return a single task 
+(745 ms)
+      ΓêÜ should 
+return 404 for 
+non-existent task 
+(961 ms)
+    PATCH /tasks/:id
+      ΓêÜ should 
+update task as 
+creator (812 ms)
+      ΓêÜ should 
+reject update from no
+n-creator/non-assigne
+e (1464 ms)
+    DELETE /tasks/:id
+      ΓêÜ should 
+delete task as 
+creator (684 ms)
+      ΓêÜ should 
+reject delete from 
+non-creator (1144 ms)
+
+PASS tests/rateLimit.
+test.js
+  Rate Limiting
+    ΓêÜ should 
+return 429 after 
+exceeding rate limit 
+(269 ms)
+    ΓêÜ should allow 
+requests under the 
+limit (120 ms)
+
+----------------------------|---------|----------|---------|---------|---------------------------------------
+File                        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                     
+----------------------------|---------|----------|---------|---------|---------------------------------------
+All files                   |   86.15 |     64.7 |   84.61 |   86.36 |                                       
+ src                        |   93.33 |      100 |      50 |   93.33 |                                       
+  app.js                    |   93.33 |      100 |      50 |   93.33 | 25                                    
+ src/controllers            |   89.83 |      100 |    87.5 |   89.83 |                                       
+  authController.js         |     100 |      100 |     100 |     100 |                                       
+  index.js                  |     100 |      100 |     100 |     100 |                                       
+  notificationController.js |   44.44 |      100 |       0 |   44.44 | 6-15                                  
+  taskController.js         |   96.77 |      100 |     100 |   96.77 | 34                                    
+ src/middlewares            |   80.82 |    66.66 |      80 |   81.69 |                                       
+  auth.js                   |   86.36 |       70 |     100 |   86.36 | 21,30,33                              
+  errorHandler.js           |    62.5 |    58.82 |   66.66 |   63.63 | 7,26-30,39-40,48,63-64                
+  index.js                  |     100 |      100 |     100 |     100 |                                       
+  rateLimiter.js            |    91.3 |    73.33 |     100 |    91.3 | 40-41                                 
+ src/models                 |   96.42 |       50 |     100 |   96.42 |                                       
+  Notification.js           |     100 |      100 |     100 |     100 |                                       
+  Task.js                   |     100 |      100 |     100 |     100 |                                       
+  User.js                   |   92.85 |       50 |     100 |   92.85 | 37                                    
+  index.js                  |     100 |      100 |     100 |     100 |                                       
+ src/routes                 |     100 |      100 |     100 |     100 |                                       
+  authRoutes.js             |     100 |      100 |     100 |     100 |                                       
+  index.js                  |     100 |      100 |     100 |     100 |                                       
+  notificationRoutes.js     |     100 |      100 |     100 |     100 |                                       
+  taskRoutes.js             |     100 |      100 |     100 |     100 |                                       
+ src/services               |   80.43 |    64.28 |      85 |   80.43 |                                       
+  authService.js            |     100 |     87.5 |     100 |     100 | 11                                    
+  cacheService.js           |      75 |       50 |     100 |      75 | 26-27,36,45,55-58,73                  
+  index.js                  |     100 |      100 |     100 |     100 |                                       
+  notificationService.js    |   28.57 |        0 |       0 |   28.57 | 6-32                                  
+  queueService.js           |      60 |      100 |      50 |      60 | 21-31                                 
+  taskService.js            |   83.82 |       65 |     100 |   83.82 | 42,86,109,131-134,149,161,164,178,188 
+ src/utils                  |     100 |       50 |     100 |     100 |                                       
+  AppError.js               |     100 |       50 |     100 |     100 | 5                                     
+  validators.js             |     100 |      100 |     100 |     100 |                                       
+----------------------------|---------|----------|---------|---------|---------------------------------------
+Test Suites: 3 
+passed, 3 total
+Tests:       21 
+passed, 21 total
+Snapshots:   0 total
+Time:        30.353 s
+Ran all test suites.
