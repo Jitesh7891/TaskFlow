@@ -4,22 +4,20 @@ const { User } = require('../models');
 
 const auth = async (req, res, next) => {
     try {
-        console.log('⚠️ [Warning] Auth middleware is temporarily bypassed for easy testing');
-        
-        // Find any existing user to attach to the request
-        let user = await User.findOne();
-        
-        // If no user exists, create a dummy one so validations (like creator/assignee) don't break
-        if (!user) {
-            user = await User.create({
-                name: 'Test Setup User',
-                email: 'test' + Date.now() + '@example.com',
-                password: 'password123'
-            });
-            console.log('[Auth] Created a mock user for testing:', user._id);
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            throw new AppError('Authentication required. Please log in.', 401);
         }
 
-        // Attach user to request
+        const token = authHeader.split(' ')[1];
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            throw new AppError('The user belonging to this token no longer exists.', 401);
+        }
+
         req.user = user;
         req.userId = user._id.toString();
         

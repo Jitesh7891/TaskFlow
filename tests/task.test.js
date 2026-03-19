@@ -84,6 +84,10 @@ describe('Task Endpoints', () => {
                 expect.objectContaining({
                     type: 'TASK_ASSIGNED',
                     userId: assigneeId,
+                }),
+                expect.objectContaining({
+                    attempts: 3,
+                    removeOnComplete: true,
                 })
             );
         });

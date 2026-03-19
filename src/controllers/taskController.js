@@ -9,7 +9,7 @@ const {
 const createTask = async (req, res, next) => {
     try {
         const validatedData = createTaskSchema.parse(req.body);
-        const task = await taskService.createTask(validatedData, req.userId);
+        const task = await taskService.createTask(validatedData, req.user);
 
         res.status(201).json({
             status: 'success',
@@ -24,7 +24,7 @@ const createTask = async (req, res, next) => {
 const getTasks = async (req, res, next) => {
     try {
         const { page, limit } = paginationSchema.parse(req.query);
-        const result = await taskService.getTasks(req.userId, page, limit);
+        const result = await taskService.getTasks(req.user, page, limit);
 
         res.status(200).json({
             status: 'success',
@@ -38,7 +38,7 @@ const getTasks = async (req, res, next) => {
 // Get single task
 const getTask = async (req, res, next) => {
     try {
-        const task = await taskService.getTaskById(req.params.id, req.userId);
+        const task = await taskService.getTaskById(req.params.id, req.user);
 
         res.status(200).json({
             status: 'success',
@@ -53,7 +53,7 @@ const getTask = async (req, res, next) => {
 const updateTask = async (req, res, next) => {
     try {
         const validatedData = updateTaskSchema.parse(req.body);
-        const task = await taskService.updateTask(req.params.id, validatedData, req.userId);
+        const task = await taskService.updateTask(req.params.id, validatedData, req.user);
 
         res.status(200).json({
             status: 'success',
@@ -67,7 +67,7 @@ const updateTask = async (req, res, next) => {
 // Delete task
 const deleteTask = async (req, res, next) => {
     try {
-        const result = await taskService.deleteTask(req.params.id, req.userId);
+        const result = await taskService.deleteTask(req.params.id, req.user);
 
         res.status(200).json({
             status: 'success',

@@ -6,7 +6,8 @@ const queueService = require('./queueService');
 
 class TaskService {
     // Create a new task
-    async createTask(data, creatorId) {
+    async createTask(data, user) {
+        const creatorId = user._id.toString();
         const task = await Task.create({
             ...data,
             createdBy: creatorId,
@@ -34,7 +35,10 @@ class TaskService {
     }
 
     // Get tasks with pagination
-    async getTasks(userId, page = 1, limit = 10) {
+    async getTasks(user, page = 1, limit = 10) {
+        const userId = user._id.toString();
+        
+        // Cache namespace: separate cache map for user individually
         const cacheKey = cacheService.getTaskListKey(userId, page, limit);
 
         const redisStart = performance.now();
@@ -46,21 +50,21 @@ class TaskService {
 
         const skip = (page - 1) * limit;
 
-        // Get tasks created by or assigned to the user
+        // Users only get what they own or are assigned to.
+        const queryFilter = {
+            $or: [{ createdBy: userId }, { assignedTo: userId }],
+        };
+
         const mongoStart = performance.now();
         const [tasks, total] = await Promise.all([
-            Task.find({
-                $or: [{ createdBy: userId }, { assignedTo: userId }],
-            })
+            Task.find(queryFilter)
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
                 .populate('assignedTo', 'name email')
                 .populate('createdBy', 'name email')
                 .lean(),
-            Task.countDocuments({
-                $or: [{ createdBy: userId }, { assignedTo: userId }],
-            }),
+            Task.countDocuments(queryFilter),
         ]);
         console.log(`[DB Hit] MongoDB fetch time: ${(performance.now() - mongoStart).toFixed(2)}ms`);
 
@@ -81,13 +85,18 @@ class TaskService {
     }
 
     // Get single task by ID
-    async getTaskById(taskId, userId) {
+    async getTaskById(taskId, user) {
+        const userId = user._id.toString();
         const cacheKey = cacheService.getTaskKey(taskId);
 
         // Try to get from cache
         const redisStart = performance.now();
         const cached = await cacheService.get(cacheKey);
         if (cached) {
+            // Re-validate permission from cache!
+            if (cached.createdBy._id.toString() !== userId && cached.assignedTo?._id.toString() !== userId) {
+                throw new AppError('You do not have permission to view this task', 403);
+            }
             console.log(`[Cache Hit] Redis fetch time: ${(performance.now() - redisStart).toFixed(2)}ms`);
             return cached;
         }
@@ -103,6 +112,11 @@ class TaskService {
             throw new AppError('Task not found', 404);
         }
 
+        // Check view permissions after hitting DB query
+        if (task.createdBy._id.toString() !== userId && task.assignedTo?._id.toString() !== userId) {
+            throw new AppError('You do not have permission to view this task', 403);
+        }
+
         // Cache the result
         await cacheService.set(cacheKey, task);
 
@@ -110,14 +124,15 @@ class TaskService {
     }
 
     // Update task
-    async updateTask(taskId, data, userId) {
+    async updateTask(taskId, data, user) {
+        const userId = user._id.toString();
         const task = await Task.findById(taskId);
 
         if (!task) {
             throw new AppError('Task not found', 404);
         }
 
-        // Check permission: only creator or assignee can update
+        // Check permission: creator or assignee can update
         const isCreator = task.createdBy.toString() === userId;
         const isAssignee = task.assignedTo?.toString() === userId;
 
@@ -179,14 +194,15 @@ class TaskService {
     }
 
     // Delete task
-    async deleteTask(taskId, userId) {
+    async deleteTask(taskId, user) {
+        const userId = user._id.toString();
         const task = await Task.findById(taskId);
 
         if (!task) {
             throw new AppError('Task not found', 404);
         }
 
-        // Only creator can delete
+        // Permissions: only creator can delete
         if (task.createdBy.toString() !== userId) {
             throw new AppError('Only the creator can delete this task', 403);
         }
