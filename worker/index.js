@@ -63,7 +63,16 @@ const startWorker = async () => {
     });
 
     worker.on('failed', (job, error) => {
-        console.error(`Job ${job?.id} failed:`, error.message);
+        const attemptsMade = job?.attemptsMade || 1;
+        const maxAttempts = job?.opts?.attempts || 1;
+        
+        console.error(`[Worker] Job ${job?.id} failed: ${error.message}`);
+        
+        if (attemptsMade >= maxAttempts) {
+            console.error(`[DEAD LETTER] Job ${job?.id} permanently failed after ${attemptsMade} attempts! Triggering alert.`);
+        } else {
+            console.warn(`[Worker] Job ${job?.id} will be retried. Attempt ${attemptsMade} of ${maxAttempts} failed.`);
+        }
     });
 
     worker.on('error', (error) => {
