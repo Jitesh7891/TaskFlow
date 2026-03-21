@@ -1,9 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const pinoHttp = require('pino-http');
+const logger = require('./utils/logger');
 const { rateLimiter, errorHandler } = require('./middlewares');
 const { authRoutes, taskRoutes, notificationRoutes } = require('./routes');
 
 const app = express();
+
+// Global request interceptor for logging
+if (process.env.NODE_ENV !== 'test') {
+    app.use(pinoHttp({ logger }));
+}
 
 // CORS for frontend
 app.use(cors({

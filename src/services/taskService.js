@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { Task, User } = require('../models');
 const AppError = require('../utils/AppError');
 const { performance } = require('perf_hooks');
@@ -44,7 +45,7 @@ class TaskService {
         const redisStart = performance.now();
         const cached = await cacheService.get(cacheKey);
         if (cached) {
-            console.log(`[Cache Hit] Redis fetch time: ${(performance.now() - redisStart).toFixed(2)}ms`);
+            logger.info(`[Cache Hit] Redis fetch time: ${(performance.now() - redisStart).toFixed(2)}ms`);
             return cached;
         }
 
@@ -66,7 +67,7 @@ class TaskService {
                 .lean(),
             Task.countDocuments(queryFilter),
         ]);
-        console.log(`[DB Hit] MongoDB fetch time: ${(performance.now() - mongoStart).toFixed(2)}ms`);
+        logger.info(`[DB Hit] MongoDB fetch time: ${(performance.now() - mongoStart).toFixed(2)}ms`);
 
         const result = {
             tasks,
@@ -97,7 +98,7 @@ class TaskService {
             if (cached.createdBy._id.toString() !== userId && cached.assignedTo?._id.toString() !== userId) {
                 throw new AppError('You do not have permission to view this task', 403);
             }
-            console.log(`[Cache Hit] Redis fetch time: ${(performance.now() - redisStart).toFixed(2)}ms`);
+            logger.info(`[Cache Hit] Redis fetch time: ${(performance.now() - redisStart).toFixed(2)}ms`);
             return cached;
         }
 
@@ -106,7 +107,7 @@ class TaskService {
             .populate('assignedTo', 'name email')
             .populate('createdBy', 'name email')
             .lean();
-        console.log(`[DB Hit] MongoDB fetch time: ${(performance.now() - mongoStart).toFixed(2)}ms`);
+        logger.info(`[DB Hit] MongoDB fetch time: ${(performance.now() - mongoStart).toFixed(2)}ms`);
 
         if (!task) {
             throw new AppError('Task not found', 404);

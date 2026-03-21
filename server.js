@@ -1,3 +1,4 @@
+const logger = require('./src/utils/logger');
 require('dotenv').config();
 const app = require('./src/app');
 const connectDB = require('./src/config/database');
@@ -8,15 +9,15 @@ const PORT = process.env.PORT || 3000;
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {
-    console.log(`\n${signal} received. Shutting down gracefully...`);
+    logger.info(`\n${signal} received. Shutting down gracefully...`);
 
     try {
         await closeQueue();
         await closeRedis();
-        console.log('Connections closed. Exiting...');
+        logger.info('Connections closed. Exiting...');
         process.exit(0);
     } catch (error) {
-        console.error('Error during shutdown:', error);
+        logger.error('Error during shutdown:', error);
         process.exit(1);
     }
 };
@@ -32,8 +33,8 @@ const startServer = async () => {
 
         // Start Express server
         const server = app.listen(PORT, () => {
-            console.log(`API Server running on port ${PORT}`);
-            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+            logger.info(`API Server running on port ${PORT}`);
+            logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
         });
 
         // Handle graceful shutdown
@@ -42,7 +43,7 @@ const startServer = async () => {
 
         return server;
     } catch (error) {
-        console.error('Failed to start server:', error);
+        logger.error('Failed to start server:', error);
         process.exit(1);
     }
 };

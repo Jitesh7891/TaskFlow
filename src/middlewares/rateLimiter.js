@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { getRedisClient } = require('../config/redis');
 const AppError = require('../utils/AppError');
 
@@ -40,7 +41,7 @@ const rateLimiter = async (req, res, next) => {
             return next(error);
         }
         // If Redis fails, allow the request (fail-open)
-        console.error('Rate limiter error:', error.message);
+        logger.error('Rate limiter error:', error.message);
         next();
     }
 };

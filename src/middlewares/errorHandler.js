@@ -1,10 +1,11 @@
+const logger = require('../utils/logger');
 const { z } = require('zod');
 const AppError = require('../utils/AppError');
 
 const errorHandler = (err, req, res, next) => {
     // Log error for debugging
     if (process.env.NODE_ENV === 'development') {
-        console.error('Error:', err);
+        logger.error('Error:', err);
     }
 
     // Handle Zod validation errors (Zod v4 uses 'issues')
@@ -60,7 +61,7 @@ const errorHandler = (err, req, res, next) => {
     }
 
     // Handle unexpected errors
-    console.error('Unexpected error:', err);
+    logger.error('Unexpected error:', err);
     return res.status(500).json({
         status: 'error',
         message: 'Internal server error',

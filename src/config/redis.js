@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const Redis = require('ioredis');
 
 let redis = null;
@@ -12,11 +13,11 @@ const getRedisClient = () => {
         });
 
         redis.on('connect', () => {
-            console.log('Redis connected');
+            logger.info('Redis connected');
         });
 
         redis.on('error', (err) => {
-            console.error('Redis error:', err.message);
+            logger.error('Redis error:', err.message);
         });
     }
     return redis;

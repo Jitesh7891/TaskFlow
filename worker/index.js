@@ -1,3 +1,4 @@
+const logger = require('../src/utils/logger');
 require('dotenv').config();
 const { Worker } = require('bullmq');
 const mongoose = require('mongoose');
@@ -8,16 +9,16 @@ const { Notification } = require('../src/models');
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI);
-        console.log('Worker: MongoDB connected');
+        logger.info('Worker: MongoDB connected');
     } catch (error) {
-        console.error('Worker: MongoDB connection error:', error.message);
+        logger.error('Worker: MongoDB connection error:', error.message);
         process.exit(1);
     }
 };
 
 // Process notification job
 const processNotification = async (job) => {
-    console.log(`Processing job ${job.id}: ${job.name}`);
+    logger.info(`Processing job ${job.id}: ${job.name}`);
 
     const { type, userId, message, taskId, enqueuedAt } = job.data;
 
@@ -29,18 +30,18 @@ const processNotification = async (job) => {
         taskId,
     });
 
-    console.log(`[Database] Notification created: ${notification._id}`);
+    logger.info(`[Database] Notification created: ${notification._id}`);
 
     const queueTotalTime = enqueuedAt ? Date.now() - enqueuedAt : 'N/A';
 
     // DEMO LOGGING
-    console.log('----------------------------------------');
-    console.log(`✅ [Worker] Job ${job.id} COMPLETED`);
-    console.log(`   Type: ${type}`);
-    console.log(`   Message: "${message}"`);
-    console.log('   Action: Saved to MongoDB');
-    console.log(`   Queue Wait + Exec Time: ${queueTotalTime}ms`);
-    console.log('----------------------------------------');
+    logger.info('----------------------------------------');
+    logger.info(`✅ [Worker] Job ${job.id} COMPLETED`);
+    logger.info(`   Type: ${type}`);
+    logger.info(`   Message: "${message}"`);
+    logger.info('   Action: Saved to MongoDB');
+    logger.info(`   Queue Wait + Exec Time: ${queueTotalTime}ms`);
+    logger.info('----------------------------------------');
 
     return { success: true, notificationId: notification._id.toString() };
 };
@@ -59,35 +60,35 @@ const startWorker = async () => {
     );
 
     worker.on('completed', (job, result) => {
-        console.log(`Job ${job.id} completed:`, result);
+        logger.info(`Job ${job.id} completed:`, result);
     });
 
     worker.on('failed', (job, error) => {
         const attemptsMade = job?.attemptsMade || 1;
         const maxAttempts = job?.opts?.attempts || 1;
         
-        console.error(`[Worker] Job ${job?.id} failed: ${error.message}`);
+        logger.error(`[Worker] Job ${job?.id} failed: ${error.message}`);
         
         if (attemptsMade >= maxAttempts) {
-            console.error(`[DEAD LETTER] Job ${job?.id} permanently failed after ${attemptsMade} attempts! Triggering alert.`);
+            logger.error(`[DEAD LETTER] Job ${job?.id} permanently failed after ${attemptsMade} attempts! Triggering alert.`);
         } else {
-            console.warn(`[Worker] Job ${job?.id} will be retried. Attempt ${attemptsMade} of ${maxAttempts} failed.`);
+            logger.warn(`[Worker] Job ${job?.id} will be retried. Attempt ${attemptsMade} of ${maxAttempts} failed.`);
         }
     });
 
     worker.on('error', (error) => {
-        console.error('Worker error:', error);
+        logger.error('Worker error:', error);
     });
 
-    console.log('Worker started and listening for jobs...');
+    logger.info('Worker started and listening for jobs...');
 
     // Graceful shutdown
     const shutdown = async (signal) => {
-        console.log(`\n${signal} received. Shutting down worker...`);
+        logger.info(`\n${signal} received. Shutting down worker...`);
         await worker.close();
         await closeRedis();
         await mongoose.connection.close();
-        console.log('Worker shutdown complete');
+        logger.info('Worker shutdown complete');
         process.exit(0);
     };
 

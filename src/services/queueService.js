@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { getNotificationQueue } = require('../config/queue');
 
 class QueueService {
@@ -22,7 +23,7 @@ class QueueService {
             }
         );
 
-        console.log(`Task assigned job added: ${job.id}`);
+        logger.info(`Task assigned job added: ${job.id}`);
         return job;
     }
 
@@ -47,7 +48,7 @@ class QueueService {
             }
         );
 
-        console.log(`Status updated job added: ${job.id}`);
+        logger.info(`Status updated job added: ${job.id}`);
         return job;
     }
 }

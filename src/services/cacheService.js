@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const { getRedisClient } = require('../config/redis');
 
 const CACHE_TTL = 60; // 60 seconds
@@ -22,13 +23,13 @@ class CacheService {
         try {
             const data = await this.redis.get(key);
             if (data) {
-                console.log(`[Cache] HIT: ${key}`);
+                logger.info(`[Cache] HIT: ${key}`);
                 return JSON.parse(data);
             }
-            console.log(`[Cache] MISS: ${key}`);
+            logger.info(`[Cache] MISS: ${key}`);
             return null;
         } catch (error) {
-            console.error('Cache get error:', error.message);
+            logger.error('Cache get error:', error.message);
             return null;
         }
     }
@@ -38,7 +39,7 @@ class CacheService {
         try {
             await this.redis.setex(key, ttl, JSON.stringify(data));
         } catch (error) {
-            console.error('Cache set error:', error.message);
+            logger.error('Cache set error:', error.message);
         }
     }
 
@@ -47,7 +48,7 @@ class CacheService {
         try {
             await this.redis.del(key);
         } catch (error) {
-            console.error('Cache delete error:', error.message);
+            logger.error('Cache delete error:', error.message);
         }
     }
 
@@ -60,7 +61,7 @@ class CacheService {
                 await this.redis.del(...keys);
             }
         } catch (error) {
-            console.error('Cache invalidation error:', error.message);
+            logger.error('Cache invalidation error:', error.message);
         }
     }
 
@@ -75,7 +76,7 @@ class CacheService {
                 await this.invalidateUserTaskCache(userId);
             }
         } catch (error) {
-            console.error('Task cache invalidation error:', error.message);
+            logger.error('Task cache invalidation error:', error.message);
         }
     }
 }
