@@ -7,7 +7,8 @@
     "dev": "nodemon server.js",
     "worker": "node worker/index.js",
     "worker:dev": "nodemon worker/index.js",
-    "test": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles --forceExit"
+    "test": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles --forceExit",
+    "swagger": "node swagger.js"
   },
   "keywords": [
     "task-management",
@@ -31,6 +32,7 @@
     "mongoose": "^9.1.3",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {

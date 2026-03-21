@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const pinoHttp = require('pino-http');
 const logger = require('./utils/logger');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('../swagger.json');
 const { rateLimiter, errorHandler } = require('./middlewares');
 const { authRoutes, taskRoutes, notificationRoutes } = require('./routes');
 
@@ -33,6 +35,9 @@ app.use(rateLimiter);
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Auto-compiled API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Routes
 app.use('/auth', authRoutes);

@@ -54,17 +54,6 @@ services:
       - taskflow-network
     command: npm run worker:dev
 
-  # Frontend Client
-  client:
-    build: ./client
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:3000
-    depends_on:
-      - api
-    networks:
-      - taskflow-network
 
 networks:
   taskflow-network:
