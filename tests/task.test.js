@@ -158,6 +158,35 @@ describe('Task Endpoints', () => {
 
             expect(res.status).toBe(404);
         });
+
+        it('should block unauthorized access even if cache is stale and says authorized', async () => {
+            // Create another user
+            const user2Res = await request(app)
+                .post('/auth/register')
+                .send({
+                    name: 'Stale User',
+                    email: 'stale@example.com',
+                    password: 'password123',
+                });
+            const staleUserId = user2Res.body.data.user._id;
+
+            // Manually inject a stale cache entry where staleUser is the assignee
+            const cacheService = require('../src/services/cacheService');
+            await cacheService.set(`task:${taskId}`, {
+                _id: taskId,
+                title: 'Stale Cache Task',
+                createdBy: { _id: userId, name: 'Task User' },
+                assignedTo: { _id: staleUserId, name: 'Stale User' }
+            });
+
+            // Make request as stale user
+            const res = await request(app)
+                .get(`/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${user2Res.body.data.token}`);
+
+            // DB says they are NOT assigned, so it should block them despite cache
+            expect(res.status).toBe(403);
+        });
     });
 
     describe('PATCH /tasks/:id', () => {

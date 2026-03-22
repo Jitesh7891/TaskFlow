@@ -90,14 +90,23 @@ class TaskService {
         const userId = user._id.toString();
         const cacheKey = cacheService.getTaskKey(taskId);
 
-        // Try to get from cache
+        // 1. Auth check against DB before using cache
+        const mongoAuthStart = performance.now();
+        const authCheck = await Task.findById(taskId).select('createdBy assignedTo').lean();
+        logger.info(`[Auth DB] MongoDB fast auth fetch time: ${(performance.now() - mongoAuthStart).toFixed(2)}ms`);
+
+        if (!authCheck) {
+            throw new AppError('Task not found', 404);
+        }
+
+        if (authCheck.createdBy.toString() !== userId && authCheck.assignedTo?.toString() !== userId) {
+            throw new AppError('You do not have permission to view this task', 403);
+        }
+
+        // 2. Try to get full payload from cache
         const redisStart = performance.now();
         const cached = await cacheService.get(cacheKey);
         if (cached) {
-            // Re-validate permission from cache!
-            if (cached.createdBy._id.toString() !== userId && cached.assignedTo?._id.toString() !== userId) {
-                throw new AppError('You do not have permission to view this task', 403);
-            }
             logger.info(`[Cache Hit] Redis fetch time: ${(performance.now() - redisStart).toFixed(2)}ms`);
             return cached;
         }
@@ -108,15 +117,6 @@ class TaskService {
             .populate('createdBy', 'name email')
             .lean();
         logger.info(`[DB Hit] MongoDB fetch time: ${(performance.now() - mongoStart).toFixed(2)}ms`);
-
-        if (!task) {
-            throw new AppError('Task not found', 404);
-        }
-
-        // Check view permissions after hitting DB query
-        if (task.createdBy._id.toString() !== userId && task.assignedTo?._id.toString() !== userId) {
-            throw new AppError('You do not have permission to view this task', 403);
-        }
 
         // Cache the result
         await cacheService.set(cacheKey, task);
