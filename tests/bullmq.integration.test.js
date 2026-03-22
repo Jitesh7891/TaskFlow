@@ -115,6 +115,60 @@ describe('BullMQ True Integration Tests', () => {
         expect(permanentFailureCaught).toBe(true);
     }, 10000);
 
+    it('[DLQ] should move job to DLQ after permanent failure and process it exactly once', async () => {
+        let attemptsObserved = 0;
+        let permanentFailureCaught = false;
+        let dlqAttemptsObserved = 0;
+
+        // Main worker
+        worker = new Worker(QUEUE_NAME, async (job) => {
+            attemptsObserved++;
+            throw new Error('Simulated external API timeout');
+        }, { connection: connectionInfo });
+
+        const DLQ_QUEUE_NAME = `dlq-${QUEUE_NAME}`;
+        const dlqQueue = new Queue(DLQ_QUEUE_NAME, { connection: connectionInfo });
+        
+        let dlqWorker = new Worker(DLQ_QUEUE_NAME, async (job) => {
+            dlqAttemptsObserved++;
+            return { success: true }; // Recovered in DLQ
+        }, { connection: connectionInfo });
+
+        // Listen for the failed event and move to DLQ manually as worker/index.js does
+        worker.on('failed', async (job, err) => {
+            const attemptsMade = job.attemptsMade;
+            const maxAttempts = job.opts.attempts;
+            
+            if (attemptsMade >= maxAttempts) {
+                permanentFailureCaught = true;
+                await dlqQueue.add(job.name, job.data, {
+                    attempts: 1
+                });
+            }
+        });
+
+        // Add a job with 3 attempts and a super fast backoff
+        await queue.add('fail_job', { data: 'fail' }, {
+            attempts: 3,
+            backoff: { type: 'fixed', delay: 100 } 
+        });
+
+        // Wait for DLQ processing
+        await new Promise((resolve) => {
+            dlqWorker.on('completed', () => {
+                resolve();
+            });
+        });
+
+        // Assertions
+        expect(attemptsObserved).toBe(3);
+        expect(permanentFailureCaught).toBe(true);
+        expect(dlqAttemptsObserved).toBe(1);
+
+        await dlqWorker.close();
+        await dlqQueue.close();
+    }, 10000);
+
     it('[Observability] should log retries and permanent failure correctly', async () => {
         let logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
         let warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
