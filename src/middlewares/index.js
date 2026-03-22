@@ -1,11 +1,12 @@
 const auth = require('./auth');
-const rateLimiter = require('./rateLimiter');
+const { globalRateLimiter, authRateLimiter } = require('./rateLimiter');
 const errorHandler = require('./errorHandler');
 const requireRole = require('./requireRole');
 
 module.exports = {
     auth,
-    rateLimiter,
+    globalRateLimiter,
+    authRateLimiter,
     errorHandler,
     requireRole,
 };

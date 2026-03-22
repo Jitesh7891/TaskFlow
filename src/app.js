@@ -4,7 +4,7 @@ const pinoHttp = require('pino-http');
 const logger = require('./utils/logger');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../swagger.json');
-const { rateLimiter, errorHandler } = require('./middlewares');
+const { globalRateLimiter, errorHandler } = require('./middlewares');
 const { authRoutes, taskRoutes, notificationRoutes } = require('./routes');
 
 const app = express();
@@ -29,7 +29,7 @@ const responseTime = require('./middlewares/responseTime');
 app.use(responseTime);
 
 // Rate limiter (applies to all routes)
-app.use(rateLimiter);
+app.use(globalRateLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
