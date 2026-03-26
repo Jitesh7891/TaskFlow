@@ -2,5 +2,5 @@ node_modules/
 .env
 coverage/
 *.log
+*.txt
 .DS_Store
-password.txt
