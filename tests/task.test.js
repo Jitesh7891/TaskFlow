@@ -273,4 +273,155 @@ describe('Task Endpoints', () => {
             expect(res.status).toBe(403);
         });
     });
+
+    describe('PATCH /tasks/:id - Status Change → Queue Trigger', () => {
+        it('should trigger addStatusUpdatedJob when status changes and task has assignee', async () => {
+            // Create assignee
+            const user2Res = await request(app)
+                .post('/auth/register')
+                .send({
+                    name: 'Assignee User',
+                    email: 'assignee-status@example.com',
+                    password: 'password123',
+                });
+
+            const assigneeId = user2Res.body.data.user._id;
+
+            // Create task with assignee
+            const taskRes = await request(app)
+                .post('/tasks')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Status Task', status: 'todo', assignedTo: assigneeId });
+
+            const taskId = taskRes.body.data.task._id;
+            const mockQueue = getNotificationQueue();
+
+            // Clear mocks from creation to isolate status update call
+            jest.clearAllMocks();
+
+            // Update status
+            const res = await request(app)
+                .patch(`/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ status: 'done' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.task.status).toBe('done');
+
+            // Verify addStatusUpdatedJob was triggered via queue
+            expect(mockQueue.add).toHaveBeenCalledWith(
+                'task_status_updated',
+                expect.objectContaining({
+                    type: 'STATUS_UPDATED',
+                    userId: assigneeId,
+                }),
+                expect.objectContaining({
+                    attempts: 3,
+                    removeOnComplete: true,
+                })
+            );
+        });
+    });
+
+    describe('PATCH /tasks/:id - Assignee Change → Queue Trigger', () => {
+        it('should trigger addTaskAssignedJob when assignedTo changes', async () => {
+            // Create task without assignee
+            const taskRes = await request(app)
+                .post('/tasks')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Assign Task' });
+
+            const taskId = taskRes.body.data.task._id;
+
+            // Create new user to assign to
+            const user2Res = await request(app)
+                .post('/auth/register')
+                .send({
+                    name: 'New Assignee',
+                    email: 'newassignee@example.com',
+                    password: 'password123',
+                });
+
+            const newAssigneeId = user2Res.body.data.user._id;
+            const mockQueue = getNotificationQueue();
+
+            // Clear mocks from creation
+            jest.clearAllMocks();
+
+            // Update assignee
+            const res = await request(app)
+                .patch(`/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ assignedTo: newAssigneeId });
+
+            expect(res.status).toBe(200);
+
+            // Verify addTaskAssignedJob was triggered
+            expect(mockQueue.add).toHaveBeenCalledWith(
+                'task_assigned',
+                expect.objectContaining({
+                    type: 'TASK_ASSIGNED',
+                    userId: newAssigneeId,
+                }),
+                expect.objectContaining({
+                    attempts: 3,
+                    removeOnComplete: true,
+                })
+            );
+        });
+    });
+
+    describe('Cache Invalidation Verification', () => {
+        it('should invalidate cache on task creation', async () => {
+            const cacheService = require('../src/services/cacheService');
+            const spy = jest.spyOn(cacheService, 'invalidateTaskCache');
+
+            await request(app)
+                .post('/tasks')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Cache Create Task' });
+
+            expect(spy).toHaveBeenCalled();
+            spy.mockRestore();
+        });
+
+        it('should invalidate cache on task update', async () => {
+            const taskRes = await request(app)
+                .post('/tasks')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Cache Update Task' });
+
+            const taskId = taskRes.body.data.task._id;
+
+            const cacheService = require('../src/services/cacheService');
+            const spy = jest.spyOn(cacheService, 'invalidateTaskCache');
+
+            await request(app)
+                .patch(`/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ status: 'in-progress' });
+
+            expect(spy).toHaveBeenCalled();
+            spy.mockRestore();
+        });
+
+        it('should invalidate cache on task deletion', async () => {
+            const taskRes = await request(app)
+                .post('/tasks')
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Cache Delete Task' });
+
+            const taskId = taskRes.body.data.task._id;
+
+            const cacheService = require('../src/services/cacheService');
+            const spy = jest.spyOn(cacheService, 'invalidateTaskCache');
+
+            await request(app)
+                .delete(`/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(spy).toHaveBeenCalled();
+            spy.mockRestore();
+        });
+    });
 });

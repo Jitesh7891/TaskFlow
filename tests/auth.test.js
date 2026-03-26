@@ -117,4 +117,91 @@ describe('Auth Endpoints', () => {
             expect(res.status).toBe(401);
         });
     });
+
+    describe('Auth Edge Cases', () => {
+        describe('POST /auth/register - missing fields', () => {
+            it('should fail when name is missing', async () => {
+                const res = await request(app)
+                    .post('/auth/register')
+                    .send({ email: 'test@example.com', password: 'password123' });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should fail when email is missing', async () => {
+                const res = await request(app)
+                    .post('/auth/register')
+                    .send({ name: 'Test User', password: 'password123' });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should fail when password is missing', async () => {
+                const res = await request(app)
+                    .post('/auth/register')
+                    .send({ name: 'Test User', email: 'test@example.com' });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should fail with empty body', async () => {
+                const res = await request(app)
+                    .post('/auth/register')
+                    .send({});
+
+                expect(res.status).toBe(400);
+            });
+        });
+
+        describe('POST /auth/login - missing fields', () => {
+            it('should fail when email is missing', async () => {
+                const res = await request(app)
+                    .post('/auth/login')
+                    .send({ password: 'password123' });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should fail when password is missing', async () => {
+                const res = await request(app)
+                    .post('/auth/login')
+                    .send({ email: 'test@example.com' });
+
+                expect(res.status).toBe(400);
+            });
+
+            it('should fail with empty body', async () => {
+                const res = await request(app)
+                    .post('/auth/login')
+                    .send({});
+
+                expect(res.status).toBe(400);
+            });
+        });
+
+        describe('JWT token structure', () => {
+            it('should return a token with 3 parts (header.payload.signature)', async () => {
+                const res = await request(app)
+                    .post('/auth/register')
+                    .send({
+                        name: 'JWT User',
+                        email: 'jwt@example.com',
+                        password: 'password123',
+                    });
+
+                expect(res.status).toBe(201);
+
+                const token = res.body.data.token;
+                expect(token).toBeDefined();
+
+                const parts = token.split('.');
+                expect(parts).toHaveLength(3);
+
+                // Each part should be a non-empty base64url string
+                parts.forEach(part => {
+                    expect(part.length).toBeGreaterThan(0);
+                });
+            });
+        });
+    });
 });
