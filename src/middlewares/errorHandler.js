@@ -60,6 +60,14 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
+    // Handle Payload Too Large (express.json limits)
+    if (err.type === 'entity.too.large') {
+        return res.status(413).json({
+            status: 'fail',
+            message: 'Request entity too large',
+        });
+    }
+
     // Handle unexpected errors
     logger.error('Unexpected error:', err);
     return res.status(500).json({

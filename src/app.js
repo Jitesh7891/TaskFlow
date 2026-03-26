@@ -4,10 +4,14 @@ const pinoHttp = require('pino-http');
 const logger = require('./utils/logger');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../swagger.json');
+const helmet = require('helmet');
 const { globalRateLimiter, errorHandler } = require('./middlewares');
 const { authRoutes, taskRoutes, notificationRoutes } = require('./routes');
 
 const app = express();
+
+// Security Headers
+app.use(helmet());
 
 // Global request interceptor for logging
 if (process.env.NODE_ENV !== 'test') {
@@ -16,13 +20,13 @@ if (process.env.NODE_ENV !== 'test') {
 
 // CORS for frontend
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
     credentials: true,
     exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
 }));
 
-// Body parser
-app.use(express.json());
+// Body parser with size limit
+app.use(express.json({ limit: '100kb' }));
 
 // Track API response time
 const responseTime = require('./middlewares/responseTime');
