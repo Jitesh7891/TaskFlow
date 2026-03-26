@@ -16,18 +16,24 @@ The project inherently splits the workload into two primary Docker environments:
 
 ## 2. Distributed Caching & "Auth Before Cache"
 
-### The Decision:
-Retrieving complex tasks with joined user relationships directly from MongoDB creates a steep performance penalty. I utilize Redis as a cache-aside layer to hold this data. 
+### The Decision & What is Cached
+Retrieving complex tasks with joined user relationships directly from MongoDB creates a steep performance penalty. Instead of caching raw HTTP responses, I cache the **MongoDB query results** directly at the service layer:
+1. **Paginated Task Lists:** Aggregated lists of tasks belonging to a user (Key: `tasks:user:{userId}:page:{p}:limit:{l}`).
+2. **Single Tasks:** Individual deeply populated task objects (Key: `task:{taskId}`).
 
-### The Evolution & Tradeoff:
+I utilize a short **60-second TTL**. This acts as a "micro-cache" to seamlessly absorb massive traffic spikes (like DDOS or reload-spamming) without leaving users looking at heavily stale data if manual invalidation fails.
+
+### The Evolution & Tradeoff ("Auth Before Cache")
 Initially, I cached tasks using a completely global key (`task:123`) and relied on validating permissions against the parsed cached object itself. 
 *   **The Flaw:** If background invalidation failed (e.g., a user was removed as an assignee), the cache remained stale. The code then checked the stale object, saw the user was still authorized, and successfully exposed private data.
-*   **The Solution ("Auth Before Cache"):** I refactored the pipeline to execute a lightning-fast `.select()` query against the MongoDB source-of-truth strictly to verify permissions *before* I ever look at the cache. If they are authorized, I pull the heavy payload from Redis.
-*   **The Tradeoff:** I sacrifice "pure" O(1) cache speed by forcing a mandatory trip to the database for every single request. However, the query is incredibly lightweight, and I gain absolute certainty that data boundaries are bulletproof regardless of caching mistakes.
+*   **The Solution:** I refactored the pipeline to execute a lightning-fast `.select()` query against the MongoDB source-of-truth strictly to verify permissions *before* I ever look at the cache. If they are authorized, I pull the heavy payload from Redis.
+*   **The Tradeoff:** I sacrifice "pure" O(1) cache speed by forcing a mandatory trip to the database for every single request in exchange for 100% bulletproof data boundaries.
 
-### Cache Invalidation & Redis `SCAN`
-When a task is created, updated, or deleted, all cached task-list pages for affected users must be purged. This requires finding keys matching a pattern like `tasks:user:<id>:*`.
-*   **The Problem:** Redis's `KEYS` command scans the **entire** keyspace in a single blocking O(N) operation. At scale (millions of keys), this freezes the Redis event loop and stalls every other client.
+### Event-Driven Invalidation & Redis `SCAN`
+When a task is created, updated, or deleted, active invalidation fires immediately:
+1. The individual task's cache is deleted.
+2. All cached task-list pages for the affected users (creator and assignee) are simultaneously purged.
+*   **The Problem:** Finding all of a user's lists requires matching a pattern like `tasks:user:<id>:*`. Redis's `KEYS` command does this by scanning the **entire** keyspace in a single blocking O(N) operation. At scale (millions of keys), this freezes the Redis event loop and stalls every other client.
 *   **The Solution:** I use the cursor-based `SCAN` command instead, which iterates through the keyspace in small batches (100 keys at a time) without blocking other operations. This keeps Redis responsive even during heavy cache invalidation.
 
 ---
