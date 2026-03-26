@@ -13,4 +13,4 @@ COPY . .
 EXPOSE 3000
 
 # Default command (overridden in docker-compose for worker)
-CMD ["npm", "run", "dev"]
+CMD ["node", "server.js"]
