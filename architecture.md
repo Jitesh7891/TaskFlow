@@ -25,6 +25,11 @@ Initially, I cached tasks using a completely global key (`task:123`) and relied 
 *   **The Solution ("Auth Before Cache"):** I refactored the pipeline to execute a lightning-fast `.select()` query against the MongoDB source-of-truth strictly to verify permissions *before* I ever look at the cache. If they are authorized, I pull the heavy payload from Redis.
 *   **The Tradeoff:** I sacrifice "pure" O(1) cache speed by forcing a mandatory trip to the database for every single request. However, the query is incredibly lightweight, and I gain absolute certainty that data boundaries are bulletproof regardless of caching mistakes.
 
+### Cache Invalidation & Redis `SCAN`
+When a task is created, updated, or deleted, all cached task-list pages for affected users must be purged. This requires finding keys matching a pattern like `tasks:user:<id>:*`.
+*   **The Problem:** Redis's `KEYS` command scans the **entire** keyspace in a single blocking O(N) operation. At scale (millions of keys), this freezes the Redis event loop and stalls every other client.
+*   **The Solution:** I use the cursor-based `SCAN` command instead, which iterates through the keyspace in small batches (100 keys at a time) without blocking other operations. This keeps Redis responsive even during heavy cache invalidation.
+
 ---
 
 ## 3. Asynchronous Job Processing & Dead Letter Queuing (DLQ)

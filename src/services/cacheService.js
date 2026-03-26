@@ -52,14 +52,18 @@ class CacheService {
         }
     }
 
-    // Invalidate all task caches for a user
+    // Invalidate all task caches for a user (uses SCAN instead of KEYS to avoid blocking Redis)
     async invalidateUserTaskCache(userId) {
         try {
             const pattern = `tasks:user:${userId}:*`;
-            const keys = await this.redis.keys(pattern);
-            if (keys.length > 0) {
-                await this.redis.del(...keys);
-            }
+            let cursor = '0';
+            do {
+                const [nextCursor, keys] = await this.redis.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+                cursor = nextCursor;
+                if (keys.length > 0) {
+                    await this.redis.del(...keys);
+                }
+            } while (cursor !== '0');
         } catch (error) {
             logger.error('Cache invalidation error:', error.message);
         }

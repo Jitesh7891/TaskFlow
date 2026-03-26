@@ -12,6 +12,7 @@ The system leverages Redis to implement a smart, tiered rate-limiting strategy:
 ### 2. ⚡ Secure Redis Caching ("Auth Before Cache")
 To optimize performance without sacrificing security, I use a robust cache-aside pattern with a 60s TTL.
 *   **Data Integrity:** Rather than authorizing users strictly against potentially stale cached tasks, the system runs a micro-query against the database source-of-truth ensuring absolute permission validation (*before* hitting the cache).
+*   **Non-Blocking Invalidation:** Cache purging uses Redis `SCAN` (cursor-based) instead of `KEYS` to avoid blocking the Redis event loop at scale.
 
 ### 3. 📨 Background Jobs & Dead Letter Queue (DLQ)
 Notifications (assigning tasks, status updates) are completely decoupled from the main thread using **BullMQ**.
