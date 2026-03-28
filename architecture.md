@@ -57,7 +57,7 @@ Websites face two primary threats: Application-level DDoS attacks (spamming data
 
 ### 1. Global Rate Limiter (UX Focused)
 *   **Configuration:** `100 requests / 1 minute`
-*   **Mechanism:** If the user sends a JWT token, they are bucketed by their unique `userId`. If they don't, they are bucketed by their IP address. 
+*   **Mechanism:** A lightweight `extractUserId` middleware runs *before* the global rate limiter. It silently decodes the JWT (without rejecting invalid tokens) to populate `req.userId`. The rate limiter then buckets authenticated users by their unique `userId`, and unauthenticated users by their IP address. 
 *   **Why:** By bucketing authenticated users by their exact database ID, I avoid the **"NAT Pool" problem**. If 50 students use my app on a university campus, they share the exact same public IP address. Standard IP limiting would ban all 50 students simultaneously.
 
 ### 2. Auth Rate Limiter (Security Focused)

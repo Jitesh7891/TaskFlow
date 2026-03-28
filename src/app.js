@@ -5,7 +5,7 @@ const logger = require('./utils/logger');
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('../swagger.json');
 const helmet = require('helmet');
-const { globalRateLimiter, errorHandler } = require('./middlewares');
+const { globalRateLimiter, errorHandler, extractUserId } = require('./middlewares');
 const { authRoutes, taskRoutes, notificationRoutes } = require('./routes');
 
 const app = express();
@@ -31,6 +31,9 @@ app.use(express.json({ limit: '100kb' }));
 // Track API response time
 const responseTime = require('./middlewares/responseTime');
 app.use(responseTime);
+
+// Extract userId for rate limiter without rejecting unauthenticated requests
+app.use(extractUserId);
 
 // Rate limiter (applies to all routes)
 app.use(globalRateLimiter);

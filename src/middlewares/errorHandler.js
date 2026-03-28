@@ -68,6 +68,21 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
+    // Handle JWT errors (malformed/expired tokens → 401, not 500)
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            status: 'fail',
+            message: 'Invalid token. Please log in again.',
+        });
+    }
+
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            status: 'fail',
+            message: 'Token has expired. Please log in again.',
+        });
+    }
+
     // Handle unexpected errors
     logger.error('Unexpected error:', err);
     return res.status(500).json({

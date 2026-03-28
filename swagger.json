@@ -81,10 +81,6 @@
                   "password": {
                     "type": "string",
                     "example": "secret123"
-                  },
-                  "role": {
-                    "type": "string",
-                    "example": "user"
                   }
                 },
                 "required": [
@@ -152,7 +148,7 @@
                     "enum": [
                       "todo",
                       "in-progress",
-                      "completed"
+                      "done"
                     ]
                   },
                   "assignedTo": {
@@ -276,7 +272,7 @@
                     "enum": [
                       "todo",
                       "in-progress",
-                      "completed"
+                      "done"
                     ]
                   },
                   "assignedTo": {

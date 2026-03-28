@@ -7,8 +7,7 @@
     "dev": "nodemon server.js",
     "worker": "node worker/index.js",
     "worker:dev": "nodemon worker/index.js",
-    "test": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles --forceExit",
-    "swagger": "node swagger.js"
+    "test": "cross-env NODE_ENV=test jest --coverage --detectOpenHandles --forceExit"
   },
   "keywords": [
     "task-management",
