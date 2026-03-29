@@ -44,8 +44,8 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
 
 ### Prerequisites
 *   **Node.js 18+** and npm
-*   **MongoDB** — A running MongoDB instance (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
-*   **Redis** — A running Redis instance (local or [Redis Cloud](https://redis.com/cloud/))
+*   **MongoDB** (Optional if using Docker)
+*   **Redis** (Optional if using Docker)
 
 ### Setup
 
@@ -64,7 +64,7 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
     ```bash
     cp .env.example .env
     ```
-    Edit `.env` and fill in your `MONGODB_URI`, `REDIS_URL`, and `JWT_SECRET`.
+    *(The default `.env` is perfectly configured for local Docker development. Edit only if using remote databases.)*
 
 4.  **Start the API server:**
     ```bash
@@ -84,13 +84,13 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
 
 ## 🐳 Docker Setup (Alternative)
 
-If you prefer Docker, the compose file runs both the API and Worker using your `.env` for database connections:
+If you prefer Docker, the compose file spins up the **entire stack** (API, Worker, MongoDB, and Redis) locally for you:
 
 ```bash
 docker compose up --build -d
 ```
 
-> **Note:** Docker Compose runs the API server and the background worker only. It does **not** spin up MongoDB or Redis — those must be configured externally in your `.env`.
+> **Note:** The included `docker-compose.yml` mounts local volumes. Your database data will safely persist between container restarts!
 
 ---
 
