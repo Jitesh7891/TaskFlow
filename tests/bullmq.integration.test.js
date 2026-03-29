@@ -12,10 +12,12 @@ describe('BullMQ True Integration Tests', () => {
     let queue;
     let worker;
 
-    const connectionInfo = {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT) || 6379
-    };
+    const connectionInfo = process.env.REDIS_URL
+        ? { url: process.env.REDIS_URL }
+        : {
+              host: process.env.REDIS_HOST || 'localhost',
+              port: parseInt(process.env.REDIS_PORT) || 6379,
+          };
 
     beforeAll(async () => {
         queue = new Queue(QUEUE_NAME, { connection: connectionInfo });
@@ -28,7 +30,7 @@ describe('BullMQ True Integration Tests', () => {
             await worker.close();
             await worker.disconnect();
         }
-        
+
         // Wait briefly for all sockets to close down completely to prevent ECONNRESET warnings in jest
         await new Promise(r => setTimeout(r, 500));
     });
@@ -60,7 +62,7 @@ describe('BullMQ True Integration Tests', () => {
                 queue.add('test_job', { data: 'test' }, { jobId })
             );
         }
-        
+
         await Promise.all(promises);
 
         // 3. Wait for the queue to finish processing
@@ -87,7 +89,7 @@ describe('BullMQ True Integration Tests', () => {
         worker.on('failed', (job, err) => {
             const attemptsMade = job.attemptsMade;
             const maxAttempts = job.opts.attempts;
-            
+
             if (attemptsMade >= maxAttempts) {
                 permanentFailureCaught = true;
             }
@@ -96,7 +98,7 @@ describe('BullMQ True Integration Tests', () => {
         // Add a job with 3 attempts and a super fast backoff (so the test runs quickly)
         await queue.add('fail_job', { data: 'fail' }, {
             attempts: 3,
-            backoff: { type: 'fixed', delay: 100 } 
+            backoff: { type: 'fixed', delay: 100 }
         });
 
         // Wait for the total lifecycle to fail permanently 
@@ -128,7 +130,7 @@ describe('BullMQ True Integration Tests', () => {
 
         const DLQ_QUEUE_NAME = `dlq-${QUEUE_NAME}`;
         const dlqQueue = new Queue(DLQ_QUEUE_NAME, { connection: connectionInfo });
-        
+
         let dlqWorker = new Worker(DLQ_QUEUE_NAME, async (job) => {
             dlqAttemptsObserved++;
             return { success: true }; // Recovered in DLQ
@@ -138,7 +140,7 @@ describe('BullMQ True Integration Tests', () => {
         worker.on('failed', async (job, err) => {
             const attemptsMade = job.attemptsMade;
             const maxAttempts = job.opts.attempts;
-            
+
             if (attemptsMade >= maxAttempts) {
                 permanentFailureCaught = true;
                 await dlqQueue.add(job.name, job.data, {
@@ -150,7 +152,7 @@ describe('BullMQ True Integration Tests', () => {
         // Add a job with 3 attempts and a super fast backoff
         await queue.add('fail_job', { data: 'fail' }, {
             attempts: 3,
-            backoff: { type: 'fixed', delay: 100 } 
+            backoff: { type: 'fixed', delay: 100 }
         });
 
         // Wait for DLQ processing
@@ -170,8 +172,8 @@ describe('BullMQ True Integration Tests', () => {
     }, 10000);
 
     it('[Observability] should log retries and permanent failure correctly', async () => {
-        let logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        let warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        let logSpy = jest.spyOn(console, 'log').mockImplementation(() => { });
+        let warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
         let attemptsObserved = 0;
         let permanentFailureCaught = false;

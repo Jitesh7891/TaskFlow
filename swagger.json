@@ -20,7 +20,7 @@
     }
   },
   "paths": {
-     "/auth/login": {
+    "/auth/login": {
       "post": {
         "tags": [
           "Auth"
@@ -104,7 +104,8 @@
         "tags": [
           "Auth"
         ],
-        "summary": "This endpoint is exposed for demo purposes to allow reviewers to find userIds for task assignment and testing","security": [
+        "summary": "This endpoint is exposed for demo purposes to allow reviewers to find userIds for task assignment and testing",
+        "security": [
           {
             "bearerAuth": []
           }
@@ -153,7 +154,7 @@
                   },
                   "assignedTo": {
                     "type": "string",
-                    "example": "69932840a938c0374472ce2a"
+                    "example": "6993178b996ef2477071f815"
                   }
                 },
                 "required": [
@@ -277,7 +278,7 @@
                   },
                   "assignedTo": {
                     "type": "string",
-                    "example": "69932840a938c0374472ce2a"
+                    "example": "6993178b996ef2477071f815"
                   }
                 }
               }

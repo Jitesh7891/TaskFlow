@@ -38,7 +38,7 @@ class TaskService {
     // Get tasks with pagination
     async getTasks(user, page = 1, limit = 10) {
         const userId = user._id.toString();
-        
+
         // Cache namespace: separate cache map for user individually
         const cacheKey = cacheService.getTaskListKey(userId, page, limit);
 

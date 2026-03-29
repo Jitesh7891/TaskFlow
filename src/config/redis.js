@@ -5,12 +5,21 @@ let redis = null;
 
 const getRedisClient = () => {
     if (!redis) {
-        redis = new Redis({
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT) || 6379,
+        const redisUrl = process.env.REDIS_URL;
+        const options = {
             maxRetriesPerRequest: null,
             enableReadyCheck: false,
-        });
+        };
+
+        if (redisUrl) {
+            redis = new Redis(redisUrl, options);
+        } else {
+            redis = new Redis({
+                ...options,
+                host: process.env.REDIS_HOST || 'localhost',
+                port: parseInt(process.env.REDIS_PORT) || 6379,
+            });
+        }
 
         redis.on('connect', () => {
             logger.info('Redis connected');

@@ -1,63 +1,45 @@
 version: '3.8'
 
 services:
-  # Database
-  mongo:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - taskflow-network
-
-  # Cache & Queue
-  redis:
-    image: redis:7.0-alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - taskflow-network
-
-  # Backend API
   api:
     build: .
+    restart: always
+    mem_limit: 512m
+    cpus: 0.5
     ports:
       - "3000:3000"
     environment:
+      - NODE_ENV=production
       - PORT=3000
-      - MONGODB_URI=mongodb://mongo:27017/taskflow
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=your_docker_jwt_secret_key_change_in_production
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=7d
+      - CORS_ORIGIN=${CORS_ORIGIN}
       - RATE_LIMIT_WINDOW_MS=60000
-      - RATE_LIMIT_MAX_REQUESTS=10000
-    depends_on:
-      - mongo
-      - redis
+      - RATE_LIMIT_MAX_REQUESTS=100
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode===200?0:1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     networks:
       - taskflow-network
-    command: npm run dev
 
-  # Background Worker
   worker:
     build: .
+    restart: always
+    mem_limit: 512m
+    cpus: 0.5
+    command: node worker/index.js
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/taskflow
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    depends_on:
-      - mongo
-      - redis
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL}
     networks:
       - taskflow-network
-    command: npm run worker:dev
-
 
 networks:
   taskflow-network:
     driver: bridge
-
-volumes:
-  mongo-data:
