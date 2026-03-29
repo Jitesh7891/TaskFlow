@@ -10,7 +10,7 @@ The system leverages Redis to implement a smart, tiered rate-limiting strategy:
 *   **Auth Limiter:** A hyper-strict shield over `/auth/login` and `/auth/register` that ignores user tokens and locks down by raw IP Address (`10 requests/minute`), suffocating botnets and credential-stuffing attacks.
 
 ### 2. ⚡ Secure Redis Caching ("Auth Before Cache")
-To optimize performance without sacrificing security, I use a robust cache-aside pattern with a 60s TTL. Redis caching saves **~95% API response latency** on cache hits.
+To optimize performance without sacrificing security, I use a robust cache-aside pattern with a 60s TTL. Redis caching saves **70-80% API response latency** on cache hits.
 *   **Data Integrity:** Rather than authorizing users strictly against potentially stale cached tasks, the system runs a micro-query against the database source-of-truth ensuring absolute permission validation (*before* hitting the cache).
 *   **Non-Blocking Invalidation:** Cache purging uses Redis `SCAN` (cursor-based) instead of `KEYS` to avoid blocking the Redis event loop at scale.
 
