@@ -18,9 +18,9 @@ if (process.env.NODE_ENV !== 'test') {
     app.use(pinoHttp({ logger }));
 }
 
-// CORS for frontend
+// CORS — open by default (backend-only API), set CORS_ORIGIN to restrict
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN || '*',
     credentials: true,
     exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
 }));

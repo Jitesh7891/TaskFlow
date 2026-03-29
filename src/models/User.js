@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        // Role field for future RBAC expansion (not currently enforced)
         role: {
             type: String,
             enum: ['user', 'admin'],

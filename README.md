@@ -20,48 +20,98 @@ Notifications (assigning tasks, status updates) are completely decoupled from th
 *   **Dead Letter Queue (DLQ):** If an external integration stays down and exhausts retries, the job is caught, logged as a `[DEAD LETTER]`, and moved to the safety of a permanent `dlq` queue for a final recovery execution or manual review.
 
 ### 4. ✅ Automated Testing (Code Quality)
-I rely on **Jest** and **Supertest** to validate all authentication, caching, BullMQ logic, and Rate Limiting ceilings. The test suite maintains ~85% total code coverage. See [`tests.md`](tests.md) for full details.
+I rely on **Jest** and **Supertest** to validate all authentication, caching, BullMQ logic, and Rate Limiting ceilings. The test suite maintains >90% total code coverage. See [`tests.md`](tests.md) for full details.
 
 ---
 
 ## 🛠️ Tech Stack
 *   **Runtime:** Node.js 18
 *   **Backend:** Express, Zod (Validation), JWT (Authentication)
-*   **Database:** MongoDB (Mongoose)
-*   **High-Speed Memory:** Redis (ioredis)
-*   **Background Jobs:** BullMQ
+*   **Database:** MongoDB Atlas (Mongoose)
+*   **Cache & Queues:** Redis Cloud (ioredis), BullMQ
 *   **Logging:** Pino (`pino-http`)
-*   **Security:** Helmet, bcrypt
+*   **Security:** Helmet, bcrypt, Tiered Rate Limiting
 *   **Containerization:** Docker & Docker Compose
 *   **Testing:** Jest, Supertest, MongoDB-Memory-Server
-*   **CI/CD:** GitHub Actions
+*   **CI:** GitHub Actions
 
 ## 📖 Architecture & Design Decisions
 Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of why and how certain tools and strategies were chosen, alongside their system tradeoffs.
 
 ---
 
-## 🐳 Quick Start (Docker)
+## 🚀 Quick Start (Local)
+
+### Prerequisites
+*   **Node.js 18+** and npm
+*   **MongoDB** — A running MongoDB instance (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
+*   **Redis** — A running Redis instance (local or [Redis Cloud](https://redis.com/cloud/))
+
+### Setup
 
 1.  **Clone the repo:**
     ```bash
-    git clone <repo-url>
-    cd project
+    git clone https://github.com/Jitesh7891/TaskFlow.git
+    cd TaskFlow
     ```
 
-2.  **Run with Docker Compose:**
+2.  **Install dependencies:**
     ```bash
-    docker-compose up --build -d
+    npm install
     ```
-    *Builds images and starts API, Worker, Redis, and MongoDB.*
 
-3.  **Access the APIs:**
-    -   API Base: http://localhost:3000
-    -   Interactive Swagger Documentation: http://localhost:3000/api-docs
+3.  **Configure environment variables:**
+    ```bash
+    cp .env.example .env
+    ```
+    Edit `.env` and fill in your `MONGODB_URI`, `REDIS_URL`, and `JWT_SECRET`.
+
+4.  **Start the API server:**
+    ```bash
+    npm run dev
+    ```
+
+5.  **Start the background worker** (in a separate terminal):
+    ```bash
+    npm run worker:dev
+    ```
+
+6.  **Open the interactive API documentation:**
+
+    👉 **http://localhost:3000/api-docs** — Swagger UI with all endpoints, request/response schemas, and authentication built in. Register a user, grab the JWT, and test every endpoint directly from the browser.
 
 ---
 
-## API Endpoints Overview
+## 🐳 Docker Setup (Alternative)
+
+If you prefer Docker, the compose file runs both the API and Worker using your `.env` for database connections:
+
+```bash
+docker compose up --build -d
+```
+
+> **Note:** Docker Compose runs the API server and the background worker only. It does **not** spin up MongoDB or Redis — those must be configured externally in your `.env`.
+
+---
+
+## 🧪 Running Tests
+
+```bash
+npm test
+```
+
+**Test Coverage:** 91.6% statements, 70.7% branches, 89.1% functions, 92.0% lines (overall >90%).
+
+Tests use **MongoDB-Memory-Server** (in-memory database) and **mocked Redis/BullMQ** — no external services required.
+
+For BullMQ integration tests (requires a running Redis):
+```bash
+npx jest tests/bullmq.integration.test.js
+```
+
+---
+
+## 📋 API Endpoints
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
@@ -75,20 +125,20 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
 | DELETE | `/tasks/:id` | ✓ | Delete a task permanently |
 | GET | `/notifications` | ✓ | Paginated notifications |
 | GET | `/health` | ✗ | Health check |
+| GET | `/api-docs` | ✗ | **Swagger UI — Interactive API Documentation** |
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (Default: 3000) |
-| `MONGODB_URI` | MongoDB Connection String |
-| `REDIS_HOST` | Redis Server Hostname |
-| `REDIS_PORT` | Redis Server Port (Default: 6379) |
-| `JWT_SECRET` | Secret key to sign tokens |
-| `JWT_EXPIRES_IN` | Token expiry duration (e.g. `7d`) |
-| `RATE_LIMIT_WINDOW_MS` | Global rate limit window in ms (Default: 60000) |
-| `RATE_LIMIT_MAX_REQUESTS` | Max requests per window (Default: 100) |
-| `CORS_ORIGIN` | Allowed CORS origin (Default: `http://localhost:5173`) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `PORT` | No | Server port (Default: `3000`) |
+| `MONGODB_URI` | **Yes** | MongoDB connection string |
+| `REDIS_URL` | **Yes** | Redis connection URL (e.g. `redis://localhost:6379`) |
+| `JWT_SECRET` | **Yes** | Secret key to sign JWT tokens |
+| `JWT_EXPIRES_IN` | No | Token expiry duration (Default: `7d`) |
+| `RATE_LIMIT_WINDOW_MS` | No | Rate limit window in ms (Default: `60000`) |
+| `RATE_LIMIT_MAX_REQUESTS` | No | Max requests per window (Default: `100`) |
+| `CORS_ORIGIN` | No | Restrict CORS to a specific origin (Default: `*` — open) |
 
 ## License
 ISC

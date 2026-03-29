@@ -5,7 +5,7 @@ const extractUserId = (req, res, next) => {
         const authHeader = req.headers.authorization;
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
             if (decoded && decoded.userId) {
                 req.userId = decoded.userId;
             }

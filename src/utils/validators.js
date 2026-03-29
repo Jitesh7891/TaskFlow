@@ -18,7 +18,6 @@ const createTaskSchema = z.object({
     description: z.string().max(2000).optional(),
     status: z.enum(['todo', 'in-progress', 'done']).optional(),
     assignedTo: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID').optional(),
-    dueDate: z.string().datetime().optional(),
 });
 
 const updateTaskSchema = z.object({
@@ -26,7 +25,6 @@ const updateTaskSchema = z.object({
     description: z.string().max(2000).optional(),
     status: z.enum(['todo', 'in-progress', 'done']).optional(),
     assignedTo: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID').nullable().optional(),
-    dueDate: z.string().datetime().nullable().optional(),
 });
 
 // Pagination schema

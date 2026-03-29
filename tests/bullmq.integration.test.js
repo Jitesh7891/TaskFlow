@@ -1,3 +1,6 @@
+// Load .env so REDIS_URL is available (tests don't go through server.js where dotenv is normally called)
+require('dotenv').config();
+
 // Unmock the global setup.js mocks so we can use REAL Redis and Real BullMQ
 jest.unmock('../src/config/redis');
 jest.unmock('../src/config/queue');
@@ -14,10 +17,7 @@ describe('BullMQ True Integration Tests', () => {
 
     const connectionInfo = process.env.REDIS_URL
         ? { url: process.env.REDIS_URL }
-        : {
-              host: process.env.REDIS_HOST || 'localhost',
-              port: parseInt(process.env.REDIS_PORT) || 6379,
-          };
+        : { host: 'localhost', port: 6379 };
 
     beforeAll(async () => {
         queue = new Queue(QUEUE_NAME, { connection: connectionInfo });

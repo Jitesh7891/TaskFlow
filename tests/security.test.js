@@ -52,13 +52,13 @@ describe('Security Middleware Integrity', () => {
     });
 
     describe('CORS Configuration', () => {
-        it('should allow local development origin when env var is unset', async () => {
+        it('should allow all origins by default when CORS_ORIGIN env var is unset', async () => {
             const res = await request(app)
                 .options('/health') // Preflight request
-                .set('Origin', 'http://localhost:5173')
+                .set('Origin', 'https://any-origin.com')
                 .set('Access-Control-Request-Method', 'GET');
                 
-            expect(res.headers).toHaveProperty('access-control-allow-origin', 'http://localhost:5173');
+            expect(res.headers).toHaveProperty('access-control-allow-origin', '*');
             expect(res.headers).toHaveProperty('access-control-allow-credentials', 'true');
         });
 

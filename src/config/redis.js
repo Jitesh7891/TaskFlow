@@ -6,20 +6,14 @@ let redis = null;
 const getRedisClient = () => {
     if (!redis) {
         const redisUrl = process.env.REDIS_URL;
-        const options = {
+        if (!redisUrl) {
+            throw new Error('REDIS_URL environment variable is required');
+        }
+
+        redis = new Redis(redisUrl, {
             maxRetriesPerRequest: null,
             enableReadyCheck: false,
-        };
-
-        if (redisUrl) {
-            redis = new Redis(redisUrl, options);
-        } else {
-            redis = new Redis({
-                ...options,
-                host: process.env.REDIS_HOST || 'localhost',
-                port: parseInt(process.env.REDIS_PORT) || 6379,
-            });
-        }
+        });
 
         redis.on('connect', () => {
             logger.info('Redis connected');
