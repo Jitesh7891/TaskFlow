@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build: .
@@ -11,8 +9,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=${REDIS_URL}
+      # These hostnames resolve on the Compose network. Do not use localhost here:
+      # inside a container, localhost refers to that container itself.
+      - MONGODB_URI=mongodb://mongo:27017/taskflow
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=7d
       - RATE_LIMIT_WINDOW_MS=60000
@@ -37,8 +37,8 @@ services:
     command: node worker/index.js
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=${REDIS_URL}
+      - MONGODB_URI=mongodb://mongo:27017/taskflow
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - mongo
       - redis

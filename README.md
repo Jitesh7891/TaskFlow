@@ -64,19 +64,25 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
     ```bash
     cp .env.example .env
     ```
-    *(The default `.env` is perfectly configured for local Docker development. Edit only if using remote databases.)*
+    The defaults work when MongoDB and Redis are running on your machine (including
+    when started through Docker with `docker compose up -d mongo redis`).
 
-4.  **Start the API server:**
+4.  **Start MongoDB and Redis** (skip this if you run them natively):
+    ```bash
+    docker compose up -d mongo redis
+    ```
+
+5.  **Start the API server:**
     ```bash
     npm run dev
     ```
 
-5.  **Start the background worker** (in a separate terminal):
+6.  **Start the background worker** (in a separate terminal):
     ```bash
     npm run worker:dev
     ```
 
-6.  **Open the interactive API documentation:**
+7.  **Open the interactive API documentation:**
 
     👉 **http://localhost:3000/api-docs** — Swagger UI with all endpoints, request/response schemas, and authentication built in. Register a user, grab the JWT, and test every endpoint directly from the browser.
 
