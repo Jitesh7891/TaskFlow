@@ -2,6 +2,26 @@ const logger = require('../utils/logger');
 const { getRedisClient } = require('../config/redis');
 const AppError = require('../utils/AppError');
 
+// Redis executes a Lua script atomically. This keeps the limit check, increment,
+// and first-window expiry together even when many requests arrive at once.
+const fixedWindowRateLimitScript = `
+local current = tonumber(redis.call('GET', KEYS[1]) or '0')
+local maxRequests = tonumber(ARGV[2])
+
+if current >= maxRequests then
+    return {0, current, redis.call('PTTL', KEYS[1])}
+end
+
+local newCount = redis.call('INCR', KEYS[1])
+
+-- Start the fixed window only once. Do not reset it on later requests.
+if newCount == 1 then
+    redis.call('PEXPIRE', KEYS[1], ARGV[1])
+end
+
+return {1, newCount, redis.call('PTTL', KEYS[1])}
+`;
+
 const createRateLimiter = ({ 
     windowMs = 60000, 
     maxRequests = 100, 
@@ -18,30 +38,33 @@ const createRateLimiter = ({
             const identifier = (useUserId && req.userId) ? req.userId : (req.ip || 'anonymous');
             const key = `${keyPrefix}:${identifier}`;
 
-            // Get current count
-            const current = await redis.get(key);
+            const [allowed, count, ttl] = await redis.eval(
+                fixedWindowRateLimitScript,
+                1,
+                key,
+                windowMs,
+                maxRequests
+            );
+            const remaining = Math.max(0, maxRequests - Number(count));
 
-            if (current && parseInt(current) >= maxRequests) {
-                throw new AppError('Too many requests. Please try again later.', 429);
-            }
-
-            // Increment counter
-            const multi = redis.multi();
-            multi.incr(key);
-            multi.pexpire(key, windowMs);
-            await multi.exec();
-
-            // Set rate limit headers
+            // Set rate limit headers for both allowed and blocked requests.
             res.set({
                 'X-RateLimit-Limit': maxRequests,
-                'X-RateLimit-Remaining': Math.max(0, maxRequests - (parseInt(current) || 0) - 1),
+                'X-RateLimit-Remaining': remaining,
             });
+
+            if (Number(allowed) !== 1) {
+                const retryAfter = Math.max(1, Math.ceil(Math.max(0, Number(ttl)) / 1000));
+                res.set('Retry-After', retryAfter.toString());
+                throw new AppError('Too many requests. Please try again later.', 429);
+            }
 
             next();
         } catch (error) {
             if (error.statusCode === 429) {
                 return next(error);
             }
+            // Keep the API available if Redis is temporarily unavailable.
             logger.error('Rate limiter error:', error.message);
             next();
         }
@@ -62,4 +85,4 @@ const authRateLimiter = createRateLimiter({
     useUserId: false // Strictly IP based
 });
 
-module.exports = { globalRateLimiter, authRateLimiter };
+module.exports = { globalRateLimiter, authRateLimiter, fixedWindowRateLimitScript };

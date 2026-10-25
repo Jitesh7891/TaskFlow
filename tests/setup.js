@@ -11,6 +11,7 @@ jest.mock('../src/config/redis', () => {
         setex: jest.fn().mockResolvedValue('OK'),
         del: jest.fn().mockResolvedValue(1),
         scan: jest.fn().mockResolvedValue(['0', []]),
+        eval: jest.fn().mockResolvedValue([1, 1, 60000]),
         incr: jest.fn().mockResolvedValue(1),
         pexpire: jest.fn().mockResolvedValue(1),
         multi: jest.fn(() => ({

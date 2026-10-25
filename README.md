@@ -6,18 +6,19 @@ TaskFlow is a production-ready **Backend System** that demonstrates advanced ent
 
 ### 1. 🛡️ Tiered Rate Limiting (Security)
 The system leverages Redis to implement a smart, tiered rate-limiting strategy:
-*   **Global Limiter:** Limits general API traffic to `100 requests/minute`. A lightweight `extractUserId` middleware decodes the JWT *before* the rate limiter runs, allowing authenticated users to be bucketed by their exact Database ID (`userId`) — preventing mass false-positive bans for users sharing the same public IP (e.g. campus WiFi).
-*   **Auth Limiter:** A hyper-strict shield over `/auth/login` and `/auth/register` that ignores user tokens and locks down by raw IP Address (`10 requests/minute`), suffocating botnets and credential-stuffing attacks.
+-   **Global Limiter:** Limits general API traffic to `100 requests/minute`. A lightweight `extractUserId` middleware decodes the JWT *before* the rate limiter runs, allowing authenticated users to be bucketed by their exact Database ID (`userId`) — preventing mass false-positive bans for users sharing the same public IP (e.g. campus WiFi).
+-   **Auth Limiter:** A hyper-strict shield over `/auth/login` and `/auth/register` that ignores user tokens and locks down by raw IP Address (`10 requests/minute`), suffocating botnets and credential-stuffing attacks.
+-   **Atomic Lua Execution:** Uses a custom Redis Lua script (`EVAL`) to check limits, increment counters, and set initial window TTLs atomically in a single step — eliminating check-then-act race conditions under concurrent burst traffic and returning standard `Retry-After` headers.
 
 ### 2. ⚡ Secure Redis Caching ("Auth Before Cache")
 To optimize performance without sacrificing security, I use a robust cache-aside pattern with a 60s TTL. Redis caching saves **70-80% API response latency** on cache hits.
-*   **Data Integrity:** Rather than authorizing users strictly against potentially stale cached tasks, the system runs a micro-query against the database source-of-truth ensuring absolute permission validation (*before* hitting the cache).
-*   **Non-Blocking Invalidation:** Cache purging uses Redis `SCAN` (cursor-based) instead of `KEYS` to avoid blocking the Redis event loop at scale.
+-   **Data Integrity:** Rather than authorizing users strictly against potentially stale cached tasks, the system runs a micro-query against the database source-of-truth ensuring absolute permission validation (*before* hitting the cache).
+-   **Non-Blocking Invalidation:** Cache purging uses Redis `SCAN` (cursor-based) instead of `KEYS` to avoid blocking the Redis event loop at scale.
 
 ### 3. 📨 Background Jobs & Dead Letter Queue (DLQ)
 Notifications (assigning tasks, status updates) are completely decoupled from the main thread using **BullMQ**.
-*   **Resiliency:** Background jobs auto-retry 3 times with exponential backoff on failure.
-*   **Dead Letter Queue (DLQ):** If an external integration stays down and exhausts retries, the job is caught, logged as a `[DEAD LETTER]`, and moved to the safety of a permanent `dlq` queue for a final recovery execution or manual review.
+-   **Resiliency:** Background jobs auto-retry 3 times with exponential backoff on failure.
+-   **Dead Letter Queue (DLQ):** If an external integration stays down and exhausts retries, the job is caught, logged as a `[DEAD LETTER]`, and moved to the safety of a permanent `dlq` queue for a final recovery execution or manual review.
 
 ### 4. ✅ Automated Testing (Code Quality)
 I rely on **Jest** and **Supertest** to validate all authentication, caching, BullMQ logic, and Rate Limiting ceilings. The test suite maintains >90% total code coverage. See [`tests.md`](tests.md) for full details.
@@ -25,15 +26,15 @@ I rely on **Jest** and **Supertest** to validate all authentication, caching, Bu
 ---
 
 ## 🛠️ Tech Stack
-*   **Runtime:** Node.js 18
-*   **Backend:** Express, Zod (Validation), JWT (Authentication)
-*   **Database:** MongoDB Atlas (Mongoose)
-*   **Cache & Queues:** Redis Cloud (ioredis), BullMQ
-*   **Logging:** Pino (`pino-http`)
-*   **Security:** Helmet, bcrypt, Tiered Rate Limiting
-*   **Containerization:** Docker & Docker Compose
-*   **Testing:** Jest, Supertest, MongoDB-Memory-Server
-*   **CI:** GitHub Actions
+-   **Runtime:** Node.js 18
+-   **Backend:** Express, Zod (Validation), JWT (Authentication)
+-   **Database:** MongoDB / MongoDB Atlas (Mongoose)
+-   **Cache & Queues:** Redis 7 / Redis Cloud (ioredis), BullMQ
+-   **Logging:** Pino (`pino-http`)
+-   **Security:** Helmet, bcrypt, Tiered Rate Limiting
+-   **Containerization:** Docker & Docker Compose
+-   **Testing:** Jest, Supertest, MongoDB-Memory-Server
+-   **CI:** GitHub Actions
 
 ## 📖 Architecture & Design Decisions
 Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of why and how certain tools and strategies were chosen, alongside their system tradeoffs.
@@ -43,15 +44,15 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
 ## 🚀 Quick Start (Local)
 
 ### Prerequisites
-*   **Node.js 18+** and npm
-*   **MongoDB** (Optional if using Docker)
-*   **Redis** (Optional if using Docker)
+-   **Node.js 18+** and npm
+-   **MongoDB** (Optional if using Docker)
+-   **Redis** (Optional if using Docker)
 
 ### Setup
 
 1.  **Clone the repo:**
     ```bash
-    git clone https://github.com/Jitesh7891/TaskFlow.git
+    git clone [https://github.com/Jitesh7891/TaskFlow.git](https://github.com/Jitesh7891/TaskFlow.git)
     cd TaskFlow
     ```
 
@@ -90,13 +91,18 @@ Please see [`architecture.md`](architecture.md) for a comprehensive breakdown of
 
 ## 🐳 Docker Setup (Alternative)
 
-If you prefer Docker, the compose file spins up the **entire stack** (API, Worker, MongoDB, and Redis) locally for you:
+If you prefer Docker, the compose file spins up the **entire stack** (API, Worker, MongoDB, and Redis) locally for you.
+
+Make sure you have created your `.env` file (`cp .env.example .env`) so Docker Compose can inject `JWT_SECRET`, then run:
 
 ```bash
 docker compose up --build -d
 ```
 
-> **Note:** The included `docker-compose.yml` mounts local volumes. Your database data will safely persist between container restarts!
+> **Note:**
+> - The included `docker-compose.yml` mounts local volumes (`mongo_data` and `redis_data`). Your database data will safely persist between container restarts!
+> - The `api` container binds to port `3000`. If you want to switch back to running `npm run dev` locally on your machine, stop the `api` and `worker` containers first (`docker compose stop api worker`).
+> - Whenever you edit code and want to test inside the full Docker stack, re-run `docker compose up --build -d` to rebuild the container image with your latest changes.
 
 ---
 
